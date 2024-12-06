@@ -4,6 +4,9 @@ const bodyParser = require('body-parser');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const healthRoutes = require('./routes/health');
+const { uploadFile } = require('./services/storageService');
+const { addUserData } = require('./services/firestoreService');
+
 
 const app = express();
 app.use(bodyParser.json());
