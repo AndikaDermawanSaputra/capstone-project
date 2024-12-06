@@ -1,3 +1,4 @@
+require('dotenv').config(); // Memuat variabel dari file .env
 const express = require('express');
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/auth');
@@ -6,6 +7,12 @@ const healthRoutes = require('./routes/health');
 
 const app = express();
 app.use(bodyParser.json());
+
+const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;  // Mengambil Project ID
+const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME; // Mengambil Bucket Name
+
+console.log('Project ID:', projectId);
+console.log('Bucket Name:', bucketName);
 
 // Routes
 app.use('/auth', authRoutes);
