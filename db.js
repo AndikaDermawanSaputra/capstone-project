@@ -4,9 +4,9 @@ require('dotenv').config();  // Memuat variabel lingkungan dari file .env
 // Membuat koneksi ke MySQL menggunakan data dari .env
 const connection = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',  // Host database
-  user: process.env.DB_USER || 'root',      // User database
-  password: process.env.DB_PASSWORD || '',  // Password database
-  database: process.env.DB_NAME || 'healthcare_app',  // Nama database
+  user: process.env.DB_USER || 'health-innovation',      // User database
+  password: process.env.DB_PASSWORD || '112233',  // Password database
+  database: process.env.DB_NAME || 'sehati',  // Nama database
 });
 
 // Menghubungkan ke database
@@ -20,3 +20,4 @@ connection.connect((err) => {
 
 // Menyediakan koneksi database ke file lain
 module.exports = connection;
+
