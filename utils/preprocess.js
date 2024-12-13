@@ -1,4 +1,7 @@
-// Fungsi untuk memproses gejala menjadi array 1 dan 0
-module.exports = (symptoms, allFeatures) => {
-  return allFeatures.map(feature => (symptoms.includes(feature) ? 1 : 0));
-};
+function processInput(inputFeatures, allFeatures) {
+    const processedInput = allFeatures.map(feature =>
+        inputFeatures.includes(feature) ? 1 : 0
+    );
+    return tf.tensor2d([processedInput], [1, allFeatures.length]); // Tambahkan dimensi batch
+}
+
