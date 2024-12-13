@@ -3,7 +3,7 @@ const router = express.Router();
 
 // API Registrasi
 router.post('/register', (req, res) => {
-  const { email, password } = req.body;
+  const { email,firstname, lastname, password } = req.body;
   // Tambahkan logika Firebase Authentication untuk registrasi
   res.status(200).json({ success: true, message: 'User registered successfully' });
 });
