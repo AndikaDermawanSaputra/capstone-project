@@ -2,7 +2,29 @@
 
 
 
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const preprocessSymptoms = require('../utils/preprocess');
+const fetch = require('node-fetch');
+const tf = require('@tensorflow/tfjs-node'); // Gunakan TensorFlow.js untuk Node.js
 
+// Daftar semua gejala (urutan harus sesuai model)
+const allFeatures = [
+      'gatal', 'ruam kulit', 'erupsi kulit nodal', 'bersin terus menerus', 'menggigil', 'kedinginan', 'nyeri sendi', 'nyeri perut', 'asam lambung', 'luka di lidah', 'penyusutan otot', 'muntah', 'sensasi terbakar saat buang air kecil', 'bercak saat buang air kecil', 'kelelahan', 'penambahan berat badan', 'kecemas>
+    ];
+
+
+// Daftar kelas penyakit sesuai model
+const diseaseClasses = [
+      'AIDS', 'Alergi', 'Artritis', 'Asma Bronkial', 'Cacar Air', 'Cholestasis Kronis', 'Dengue', 'Diabetes ', 'Flu Biasa', 'Gastroenteritis', 'Hepatitis A', 'Hepatitis Alkoholik', 'Hepatitis B', 'Hepatitis C', 'Hepatitis D', 'Hepatitis E', 'Hipertiroidisme', 'Hipoglikemia', 'Hipotiroidisme', 'Hypertension ', 'I>
+     ];
+
+// Fungsi untuk memproses input gejala menjadi tensor
+function processInput(inputFeatures, allFeatures) {
+  const processedInput = allFeatures.map(feature => inputFeatures.includes(feature) ? 1 : 0);
+  return tf.tensor2d([processedInput]); // Tambahkan dimensi batch
+}
 
       
 // Fungsi untuk memproses input gejala menjadi tensor
