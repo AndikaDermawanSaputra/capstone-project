@@ -1,29 +1,17 @@
-                                               
-const express = require('express');
-const router = express.Router();
-const authenticate = require('../middleware/auth');
-const preprocessSymptoms = require('../utils/preprocess');
-const fetch = require('node-fetch');
-const tf = require('@tensorflow/tfjs-node'); // Gunakan TensorFlow.js untuk Node.js
-
-// Daftar semua gejala (urutan harus sesuai model)
-const allFeatures = [
-      'gatal', 'ruam kulit', 'erupsi kulit nodal', 'bersin terus menerus', 'menggigil', 'kedinginan', 'nyeri sen>
-    ];
-
-// Daftar kelas penyakit sesuai model
-const diseaseClasses = [
-      'AIDS', 'Alergi', 'Artritis', 'Asma Bronkial', 'Cacar Air', 'Cholestasis Kronis', 'Dengue', 'Diabetes ', '>
-    ];
 
 
+
+
+
+
+      
 // Fungsi untuk memproses input gejala menjadi tensor
 function processInput(inputFeatures, allFeatures) {
   const processedInput = allFeatures.map(feature => inputFeatures.includes(feature) ? 1 : 0);
   return tf.tensor2d([processedInput]); // Tambahkan dimensi batch
 }
 
-// Endpoint untuk mendapatkan daftar semua gejala
+/ Endpoint untuk mendapatkan daftar semua gejala
 router.get('/symptoms', (req, res) => {
   try {
     res.status(200).json({
@@ -36,18 +24,26 @@ router.get('/symptoms', (req, res) => {
   }
 });
 
-// API Pendeteksi Kesehatan dengan Gejala
+// Endpoint untuk mendiagnosis berdasarkan gejala
 router.post('/diagnose', async (req, res) => {
   const { symptoms } = req.body;
 
-  // Validasi input gejala
   if (!symptoms || !Array.isArray(symptoms)) {
-    return res.status(400).json({ success: false, message: 'Invalid symptoms' });
+    return res.status(400).json({ success: false, message: 'Gejala tidak valid' });
   }
 
   try {
-    // Preprocessing gejala untuk dimasukkan ke model
-    const processedSymptoms = preprocessSymptoms(symptoms, allFeatures);
+    // Proses input gejala
+    const inputTensor = processInput(symptoms, allFeatures);
+
+    // URL model di Google Cloud Storage
+    const modelEndpoint = 'https://storage.googleapis.com/model-capstone-c242/tfjs_model/model.json';
+
+    // Muat model dari Cloud Storage
+    const model = await tf.loadLayersModel(modelEndpoint);
+    console.log('Model berhasil dimuat dari GCS');
+
+    // Prediksi
 
 
 
@@ -57,66 +53,63 @@ router.post('/diagnose', async (req, res) => {
 
 
 
+const prediction = model.predict(inputTensor);
+    const probabilities = (await prediction.array())[0]; // Probabilitas untuk setiap kelas
 
-
-
-
-    // Endpoint model di Google Cloud
-    const modelEndpoint = 'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/capstone-project-44270>
-
-    // Mengirimkan data ke model endpoint
-    const response = await fetch(modelEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer YOUR_ACCESS_TOKEN`, // Gantilah dengan token yang benar jika perlu
-      },
-      body: JSON.stringify({ instances: [processedSymptoms] }), // Menggunakan array untuk instances
-    });
-
-    const result = await response.json();
-    const diseaseClasses = ['AIDS', 'Alergi', 'Artritis', 'Asma Bronkial', 'Cacar Air', 'Cholestasis Kronis', 'D>
-
-    // Menentukan diagnosis berdasarkan probabilitas tertinggi
-    const highestIndex = result.predictions[0].indexOf(Math.max(...result.predictions[0]));
+    // Identifikasi penyakit dengan probabilitas tertinggi
+    const highestIndex = probabilities.indexOf(Math.max(...probabilities));
     const diagnosis = diseaseClasses[highestIndex];
-
-    // Mengirimkan hasil diagnosa ke client
-    res.json({
-      success: true,
-      diagnosis: diagnosis,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error during diagnosis' });
-  }
-});
-
-// API Rekomendasi Kesehatan
-router.post('/recommendations',  async (req, res) => {
-  const { symptoms } = req.body;
-
-  const symptomsText = `Saya mengalami ${symptoms.join(', ')}`;
-  const vertexEndpoint = 'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/capstone-project-442701>
-
-  try {
-    const response = await fetch(vertexEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: symptomsText }] }] }),
-    });
-
-    const result = await response.json();
-    const recommendation = result.contents[0].parts[0].text;
 
     res.status(200).json({
       success: true,
-      message: 'Health recommendation generated',
-      data: { recommendation },
+      message: 'Diagnosis berhasil dilakukan',
+      data: {
+        diagnosis,
+        confidence: `${(probabilities[highestIndex] * 100).toFixed(2)}%`,
+      },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error generating recommendation' });
+    console.error('Error dalam proses diagnosis:', error);
+    res.status(500).json({ success: false, message: 'Gagal melakukan diagnosis', error: error.message });
   }
+});
+
+
+//API Rekomendasi
+// API Rekomendasi Kesehatan
+router.post('/recommendations', async (req, res) => {
+  const { symptoms } = req.body;
+
+  // Validasi input
+  if (!Array.isArray(symptoms) || symptoms.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Symptoms are required and should be a non-empty array.',
+    });
+  }
+ // Menggunakan aturan atau mapping untuk memberikan rekomendasi berdasarkan gejala
+  const recommendations = {
+    'demam': 'Pastikan untuk banyak istirahat dan minum banyak air. Jika demam terus berlanjut, hubungi dokter.',
+    'batuk': 'Cobalah untuk minum air hangat dan menggunakan obat batuk. Jika batuk berlanjut, konsultasikan ke dokter.',
+    'sakit kepala': 'Cobalah untuk istirahat dan menghindari stres. Jika sakit kepala terus berlanjut, pertimbangkan untuk berkonsultasi dengan dokter.',
+    'mual': 'Minum air jahe atau teh peppermint untuk meredakan mual. Jika mual terus berlanjut, periksa ke dokter.',
+  };
+
+  let recommendationMessage = 'Kami tidak memiliki rekomendasi untuk gejala tersebut.';
+
+  // Mengecek gejala yang diberikan dan memberikan rekomendasi
+  symptoms.forEach(symptom => {
+    if (recommendations[symptom]) {
+      recommendationMessage = recommendations[symptom];
+    }
+  });
+
+  // Mengirim respons rekomendasi
+  res.status(200).json({
+    success: true,
+    message: 'Health recommendation generated',
+    data: { recommendation: recommendationMessage },
+  });
 });
 
 module.exports = router;
